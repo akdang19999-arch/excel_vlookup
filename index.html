@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLOOKUP</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.5; padding: 20px; max-width: 950px; margin: 0 auto; color: #333; background-color: #f8fafc; }
+        
+        /* 헤더 배너 */
+        .header-banner {
+            background-color: #107c41;
+            color: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(16, 124, 65, 0.2);
+        }
+        .header-banner h1 { margin: 0 0 5px 0; font-size: 32px; font-weight: 900; letter-spacing: 1px; }
+        .header-banner p { margin: 0; font-size: 16px; opacity: 0.9; }
+        
+        /* 설명 박스 */
+        .description { 
+            background-color: #ffffff; border: 1px solid #e2e8f0; border-left: 6px solid #107c41; 
+            padding: 20px; border-radius: 8px; margin-bottom: 25px; font-size: 15px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .code-box { 
+            background-color: #f1f5f9; border: 1px solid #cbd5e1;
+            padding: 12px 15px; border-radius: 6px; font-family: 'Consolas', monospace; 
+            font-size: 18px; margin: 12px 0; font-weight: bold; text-align: center;
+        }
+        
+        /* 인수 색상 정의 */
+        .arg-lookup { color: #2563eb; } /* 파란색: 찾을 값 */
+        .arg-table { color: #dc2626; }  /* 빨간색: 참조 범위 */
+        .arg-col { color: #9333ea; }    /* 보라색: 열 번호 */
+        .arg-exact { color: #6b7280; }  /* 회색: 정확히 일치(0) */
+        
+        .arg-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-weight: bold; background: #fff; border: 1px solid currentColor; }
+        
+        /* 엑셀 UI 스타일 */
+        .excel-container { border: 1px solid #cbd5e1; background-color: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
+        
+        /* 컨트롤 패널 */
+        .control-panel { background-color: #f8fafc; padding: 15px 20px; border-bottom: 1px solid #cbd5e1; display: flex; gap: 20px; align-items: center; justify-content: center; }
+        .control-panel label { font-weight: bold; color: #475569; font-size: 15px; }
+        .control-input { padding: 8px 12px; border: 2px solid #cbd5e1; border-radius: 6px; font-weight: bold; outline: none; font-size: 15px; cursor: pointer; transition: border-color 0.2s; }
+        .control-input:focus { border-color: #107c41; }
+        
+        /* 수식 입력줄 */
+        .formula-bar-container { display: flex; align-items: center; border-bottom: 1px solid #cbd5e1; padding: 8px 15px; background-color: #fff; }
+        .fx-icon { font-style: italic; font-weight: bold; color: #107c41; margin-right: 15px; font-family: serif; font-size: 18px; }
+        .formula-bar { flex-grow: 1; font-family: 'Consolas', monospace; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; }
+        
+        /* 테이블 스타일 */
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 15px; text-align: center; table-layout: fixed; }
+        .excel-table th, .excel-table td { border: 1px solid #e2e8f0; padding: 12px; position: relative; transition: all 0.2s ease; }
+        .excel-table th { background-color: #f1f5f9; color: #475569; font-weight: bold; }
+        .excel-table .row-num { background-color: #f1f5f9; width: 50px; color: #475569; font-weight: bold; }
+        .header-col { background-color: #e2e8f0; }
+        
+        /* 동적 하이라이트 클래스 */
+        .table-array-wrap { position: relative; }
+        .highlight-table-array { outline: 3px solid #dc2626 !important; outline-offset: -1px; z-index: 1; }
+        
+        .highlight-lookup { background-color: #dbeafe !important; outline: 3px solid #2563eb !important; outline-offset: -1px; color: #1e3a8a; font-weight: bold; z-index: 2; }
+        .highlight-row { background-color: #f8fafc; } /* 찾은 행 배경 */
+        
+        .highlight-col-header { background-color: #f3e8ff !important; outline: 3px solid #9333ea !important; outline-offset: -1px; color: #581c87; z-index: 2; }
+        .highlight-col { background-color: #faf5ff !important; border-left: 2px dashed #d8b4fe !important; border-right: 2px dashed #d8b4fe !important; }
+        
+        /* 결과 셀 (교차점) 하이라이트 */
+        .highlight-result { background-color: #fde047 !important; outline: 4px solid #eab308 !important; outline-offset: -2px; color: #854d0e; font-weight: 900; font-size: 18px; transform: scale(1.05); z-index: 5; box-shadow: 0 0 15px rgba(234, 179, 8, 0.5); }
+        
+        .result-display { margin-top: 20px; text-align: center; font-size: 20px; font-weight: bold; color: #107c41; }
+        .result-display span { display: inline-block; padding: 5px 15px; background: #dcfce7; border-radius: 20px; border: 2px solid #22c55e; margin-left: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="header-banner">
+        <h1>VLOOKUP</h1>
+        <p>표의 가장 왼쪽에서 값을 찾아, 같은 줄에 있는 원하는 데이터를 추출합니다.</p>
+    </div>
+
+    <div class="description">
+        <div class="code-box">
+            =VLOOKUP(<span class="arg-lookup">찾을값</span>, <span class="arg-table">참조범위</span>, <span class="arg-col">열번호</span>, <span class="arg-exact">0</span>)
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px;">
+            <span class="arg-badge arg-lookup">1. 찾을값 (Blue)</span>
+            <span class="arg-badge arg-table">2. 참조범위 (Red)</span>
+            <span class="arg-badge arg-col">3. 열번호 (Purple)</span>
+            <span class="arg-badge arg-exact">4. 정확히 일치 (Gray)</span>
+        </div>
+    </div>
+
+    <div class="excel-container">
+        <!-- 상단 컨트롤러 -->
+        <div class="control-panel">
+            <div>
+                <label for="input-name">찾을값 (이름):</label>
+                <select id="input-name" class="control-input arg-lookup" style="border-color: #3b82f6;">
+                    <option value="김철수">김철수</option>
+                    <option value="이영희" selected>이영희</option>
+                    <option value="박민수">박민수</option>
+                    <option value="정수진">정수진</option>
+                </select>
+            </div>
+            <div>
+                <label for="input-col">가져올 정보 (열번호):</label>
+                <select id="input-col" class="control-input arg-col" style="border-color: #a855f7;">
+                    <option value="2">2열 (과목)</option>
+                    <option value="3" selected>3열 (점수)</option>
+                    <option value="4">4열 (등급)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 수식 입력줄 -->
+        <div class="formula-bar-container">
+            <div class="fx-icon">fx</div>
+            <div class="formula-bar" id="formula-bar"></div>
+        </div>
+
+        <!-- 엑셀 테이블 -->
+        <div style="padding: 15px;">
+            <table class="excel-table" id="data-table">
+                <thead>
+                    <tr>
+                        <th class="row-num"></th>
+                        <th id="col-1">A</th>
+                        <th id="col-2">B</th>
+                        <th id="col-3">C</th>
+                        <th id="col-4">D</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <tr>
+                        <td class="row-num">1</td>
+                        <td class="header-col">이름</td>
+                        <td class="header-col">과목</td>
+                        <td class="header-col">점수</td>
+                        <td class="header-col">등급</td>
+                    </tr>
+                    <tr data-name="김철수" data-row="2">
+                        <td class="row-num">2</td>
+                        <td class="cell-a">김철수</td>
+                        <td class="cell-b">국어</td>
+                        <td class="cell-c">85</td>
+                        <td class="cell-d">B</td>
+                    </tr>
+                    <tr data-name="이영희" data-row="3">
+                        <td class="row-num">3</td>
+                        <td class="cell-a">이영희</td>
+                        <td class="cell-b">수학</td>
+                        <td class="cell-c">92</td>
+                        <td class="cell-d">A</td>
+                    </tr>
+                    <tr data-name="박민수" data-row="4">
+                        <td class="row-num">4</td>
+                        <td class="cell-a">박민수</td>
+                        <td class="cell-b">영어</td>
+                        <td class="cell-c">78</td>
+                        <td class="cell-d">C</td>
+                    </tr>
+                    <tr data-name="정수진" data-row="5">
+                        <td class="row-num">5</td>
+                        <td class="cell-a">정수진</td>
+                        <td class="cell-b">과학</td>
+                        <td class="cell-c">95</td>
+                        <td class="cell-d">A</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="result-display" id="final-result-display">
+                최종 추출 결과: <span id="final-value">-</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const inputName = document.getElementById('input-name');
+        const inputCol = document.getElementById('input-col');
+        const formulaBar = document.getElementById('formula-bar');
+        const tableBody = document.getElementById('table-body');
+        const finalValue = document.getElementById('final-value');
+
+        // 열 매핑 (열 번호 -> 클래스명)
+        const colMap = {
+            2: 'cell-b',
+            3: 'cell-c',
+            4: 'cell-d'
+        };
+        
+        // 열 매핑 (열 번호 -> 엑셀 알파벳)
+        const alphaMap = {
+            2: 'B',
+            3: 'C',
+            4: 'D'
+        };
+
+        function resetHighlights() {
+            // 모든 하이라이트 클래스 제거
+            document.querySelectorAll('td, th, tr, tbody').forEach(el => {
+                el.classList.remove('highlight-table-array', 'highlight-lookup', 'highlight-row', 'highlight-col', 'highlight-col-header', 'highlight-result');
+            });
+        }
+
+        function updateVlookup() {
+            resetHighlights();
+
+            const targetName = inputName.value;
+            const targetColIndex = parseInt(inputCol.value);
+            const targetAlpha = alphaMap[targetColIndex];
+            const targetClass = colMap[targetColIndex];
+
+            // 1. 참조 범위 하이라이트 (Red) - A1:D5 전체 표
+            tableBody.classList.add('highlight-table-array');
+
+            // 2. 수식 표시 업데이트
+            const formula = `<span style="color:#333;">=</span><span style="color:#000;">VLOOKUP</span>( <span class="arg-lookup">"${targetName}"</span> , <span class="arg-table">A1:D5</span> , <span class="arg-col">${targetColIndex}</span> , <span class="arg-exact">0</span> )`;
+            formulaBar.innerHTML = formula;
+
+            // 3. 열 하이라이트 (Purple)
+            document.getElementById(`col-${targetColIndex}`).classList.add('highlight-col-header');
+            document.querySelectorAll(`.${targetClass}`).forEach(cell => {
+                cell.classList.add('highlight-col');
+            });
+
+            // 4. 행 찾기 및 교차점 하이라이트
+            const rows = document.querySelectorAll('tr[data-name]');
+            rows.forEach(row => {
+                if (row.getAttribute('data-name') === targetName) {
+                    // 해당 행 배경 살짝 표시
+                    row.classList.add('highlight-row');
+                    
+                    // 찾을 값 셀 하이라이트 (Blue) - A열
+                    const lookupCell = row.querySelector('.cell-a');
+                    lookupCell.classList.add('highlight-lookup');
+                    
+                    // 교차점(결과) 셀 하이라이트 (Yellow)
+                    const resultCell = row.querySelector(`.${targetClass}`);
+                    resultCell.classList.add('highlight-result');
+                    
+                    // 하단 결과 텍스트 업데이트
+                    finalValue.innerText = resultCell.innerText;
+                }
+            });
+        }
+
+        // 이벤트 리스너 등록
+        inputName.addEventListener('change', updateVlookup);
+        inputCol.addEventListener('change', updateVlookup);
+
+        // 페이지 로드 시 초기 실행
+        updateVlookup();
+    </script>
+</body>
+</html>
